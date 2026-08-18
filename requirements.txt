@@ -1,0 +1,12 @@
+streamlit>=1.38
+langchain-core>=0.3
+langchain-community>=0.3
+langchain-text-splitters>=0.3
+langchain-groq>=0.2
+langchain-huggingface>=0.1
+sentence-transformers>=3.0
+faiss-cpu>=1.8
+youtube-transcript-api>=1.2
+python-dotenv>=1.0
+fpdf2>=2.8
+requests>=2.31
