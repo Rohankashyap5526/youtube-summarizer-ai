@@ -9,4 +9,5 @@ faiss-cpu>=1.8
 youtube-transcript-api>=1.2
 python-dotenv>=1.0
 fpdf2>=2.8
+torchvision
 requests>=2.31
