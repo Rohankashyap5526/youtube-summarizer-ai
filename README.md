@@ -1,5 +1,5 @@
 # 🤖 YouTube Summarizer AI
-
+live link - https://youtube-summari-ai.streamlit.app/
 A Streamlit app that lets you **chat with** and **generate study notes from**
 any YouTube video, in **any language YouTube provides captions for** — powered
 by Groq's ultra-fast LLM inference.
