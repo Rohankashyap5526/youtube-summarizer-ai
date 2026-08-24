@@ -19,7 +19,7 @@ from langchain_groq import ChatGroq
 from langchain_huggingface import HuggingFaceEmbeddings
 
 from youtube_transcript_api import YouTubeTranscriptApi
-from youtube_transcript_api.proxies import GenericProxyConfig, WebshareProxyConfig
+from youtube_transcript_api.proxies import GenericProxyConfig
 from youtube_transcript_api._errors import (
     TranscriptsDisabled,
     NoTranscriptFound,
@@ -84,87 +84,18 @@ def get_video_metadata(video_id: str) -> dict:
         return {"title": "Untitled Video", "author": "Unknown Creator", "thumbnail": None}
 
 
-@lru_cache(maxsize=1)
-def _resolve_webshare_credentials_from_api_key(api_key: str) -> tuple[str, str] | None:
-    """
-    Resolve a Webshare proxy username/password from a Webshare *account* API key
-    (the "Proxy" tab has a separate username/password pair, but if the user only
-    has the API key, we can fetch the equivalent "Proxy" connection credentials
-    from Webshare's REST API instead).
-
-    Cached (lru_cache) since this hits the network — we only need to resolve it once
-    per process, not on every transcript request.
-    """
-    try:
-        resp = requests.get(
-            "https://proxy.webshare.io/api/v2/proxy/config/",
-            headers={"Authorization": f"Token {api_key}"},
-            timeout=10,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        username, password = data.get("username"), data.get("password")
-        if username and password:
-            return username, password
-    except Exception:
-        pass
-    return None
-
-
 def _get_proxy_config():
-    """
-    Optional proxy support, configured only via .env — helps when a host's
-    IP is rate-limited/blocked by YouTube (common on cloud deployments).
-
-    Resolution order (first match wins):
-      1. WEBSHARE_PROXY_USERNAME + WEBSHARE_PROXY_PASSWORD — direct Webshare proxy creds.
-      2. WEBSHARE_API_KEY — resolved into proxy creds via Webshare's REST API.
-      3. HTTP_PROXY_URL + HTTPS_PROXY_URL — any generic HTTP(S) proxy.
-
-    Returns None if nothing is configured, in which case requests go out directly
-    (and will likely get blocked on cloud-hosted deployments).
-    """
-    webshare_user = os.getenv("WEBSHARE_PROXY_USERNAME")
-    webshare_pass = os.getenv("WEBSHARE_PROXY_PASSWORD")
-
-    if not (webshare_user and webshare_pass):
-        api_key = os.getenv("WEBSHARE_API_KEY")
-        if api_key:
-            resolved = _resolve_webshare_credentials_from_api_key(api_key)
-            if resolved:
-                webshare_user, webshare_pass = resolved
-
-    if webshare_user and webshare_pass:
-        locations = os.getenv("WEBSHARE_FILTER_LOCATIONS")  # e.g. "us,de"
-        kwargs = {"proxy_username": webshare_user, "proxy_password": webshare_pass}
-        if locations:
-            kwargs["filter_ip_locations"] = [c.strip() for c in locations.split(",") if c.strip()]
-        return WebshareProxyConfig(**kwargs)
-
+    """Optional proxy support, configured only via .env — helps when a host's
+    IP is rate-limited/blocked by YouTube (common on cloud deployments)."""
     http_url = os.getenv("HTTP_PROXY_URL")
     https_url = os.getenv("HTTPS_PROXY_URL")
-    if http_url and https_url:
+    if http_url or https_url:
         return GenericProxyConfig(http_url=http_url, https_url=https_url)
-
     return None
-
-
-def is_proxy_configured() -> bool:
-    """Lets the UI tell the user whether a proxy fix is already in place."""
-    return _get_proxy_config() is not None
 
 
 def _transcript_api() -> YouTubeTranscriptApi:
-    proxy_config = _get_proxy_config()
-    return YouTubeTranscriptApi(proxy_config=proxy_config) if proxy_config else YouTubeTranscriptApi()
-
-
-def is_blocked_error(e: Exception) -> bool:
-    """True if the given exception (raw or already re-wrapped) represents a YouTube IP block."""
-    if isinstance(e, (RequestBlocked, IpBlocked)):
-        return True
-    msg = str(e)
-    return "RequestBlocked" in msg or "IpBlocked" in msg or "blocking" in msg.lower()
+    return YouTubeTranscriptApi(proxy_config=_get_proxy_config())
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
@@ -175,14 +106,7 @@ def list_available_transcripts(video_id: str) -> list[dict]:
     {label, language_code, is_generated}
     """
     api = _transcript_api()
-    try:
-        transcript_list = api.list(video_id)
-    except (RequestBlocked, IpBlocked):
-        raise Exception(
-            "YouTube is blocking transcript requests from this server's IP "
-            "(common on cloud hosts like Streamlit Cloud, AWS, GCP). "
-            "Add Webshare proxy credentials to your .env — see README."
-        )
+    transcript_list = api.list(video_id)
 
     entries = []
     for t in transcript_list:
@@ -224,9 +148,8 @@ def fetch_transcript_text(video_id: str, language_code: str) -> tuple[str, str]:
     except (RequestBlocked, IpBlocked):
         raise Exception(
             "YouTube is temporarily blocking transcript requests from this server's IP. "
-            "This is common on cloud-hosted apps. Configure WEBSHARE_API_KEY (or "
-            "WEBSHARE_PROXY_USERNAME / WEBSHARE_PROXY_PASSWORD) in your .env to work "
-            "around it, or try again later."
+            "This is common on cloud-hosted apps. Configure HTTP_PROXY_URL / HTTPS_PROXY_URL "
+            "in your .env to work around it, or try again later."
         )
     except AgeRestricted:
         raise Exception("This video is age-restricted and its transcript can't be accessed.")
