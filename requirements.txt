@@ -11,3 +11,4 @@ python-dotenv>=1.0
 fpdf2>=2.8
 torchvision
 requests>=2.31
+yt-dlp
