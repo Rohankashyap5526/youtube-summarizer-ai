@@ -1,82 +1,91 @@
-# 🤖 YouTube Summarizer AI
-live link - https://youtube-summari-ai.streamlit.app/
-A Streamlit app that lets you **chat with** and **generate study notes from**
-any YouTube video, in **any language YouTube provides captions for** — powered
-by Groq's ultra-fast LLM inference.
+# 📺 YouTube Summarizer AI
+
+> Chat with YouTube videos and generate structured study notes using RAG and Groq.
+
+## 🌐 Live Demo
+
+**Streamlit:** https://youtube-summari-ai.streamlit.app/
 
 ## ✨ Features
 
-- **Works with any YouTube video** — regular videos, Shorts, live replays, `youtu.be` links.
-- **Every language** — automatically lists every caption track a video has (manual
-  and auto-generated) and lets you pick which one to use. Retrieval uses a
-  multilingual embedding model, so Q&A works in the transcript's own language.
-- **💬 Interactive Q&A** — Retrieval-Augmented Generation (RAG) over the video transcript with chat memory.
-- **📝 Notes Generator** — turns a transcript into a dense, well-structured study guide,
-  optionally **translated into a different output language**, downloadable as PDF or Markdown.
-- **Unicode PDF export** — bundled DejaVu Sans font renders Latin, Cyrillic, Greek,
-  Vietnamese and other extended-Latin scripts correctly (not just ASCII). A Markdown
-  download is always available as a universal fallback for every script (e.g. CJK, Arabic, Devanagari).
-- **API key stays in `.env`** — there's no key input in the UI; the app reads
-  `GROQ_API_KEY` from the environment only.
+- Works with YouTube videos, Shorts and live replays
+- Caption-track and language selection
+- Multilingual transcript retrieval
+- RAG-based conversational Q&A
+- Chat memory
+- AI-generated study notes
+- Notes translation into selected languages
+- PDF and Markdown export
+- Environment-based API key configuration
+- Streamlit interface
+
+## 🧠 How It Works
+
+~~~text
+YouTube URL
+    ↓
+Transcript / Captions
+    ↓
+Text Chunking
+    ↓
+Multilingual Embeddings
+    ↓
+Vector Retrieval
+    ↓
+Groq LLM
+    ↓
+Answer / Study Notes
+~~~
+
+## 🧰 Tech Stack
+
+- Python
+- Streamlit
+- Groq
+- RAG
+- Sentence Transformers
+- YouTube transcript processing
+- PDF generation
+- Markdown export
 
 ## 🚀 Setup
 
-1. **Install dependencies**
+~~~bash
+git clone https://github.com/Rohankashyap5526/youtube-summarizer-ai.git
+cd youtube-summarizer-ai
+pip install -r requirements.txt
+~~~
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+Create `.env`:
 
-2. **Add your Groq API key**
+~~~env
+GROQ_API_KEY=your_groq_api_key
+~~~
 
-   Copy `.env.example` to `.env` and fill in your key (get a free one at
-   [console.groq.com/keys](https://console.groq.com/keys)):
+Run:
 
-   ```bash
-   cp .env.example .env
-   ```
+~~~bash
+streamlit run nav.py
+~~~
 
-   ```
-   GROQ_API_KEY=your_groq_api_key_here
-   ```
+## ⚠️ Notes
 
-3. **Run the app**
+Transcript availability depends on the video's available captions. Cloud hosting can also be affected by YouTube rate limiting.
 
-   ```bash
-   streamlit run nav.py
-   ```
+## 📁 Project Structure
 
-## 🧠 Models
+~~~text
+nav.py       # Main Streamlit entry point
+app.py       # Q&A interface
+notes.py     # Study-note generation
+utils.py     # Transcript, embedding and LLM helpers
+assets/      # Fonts and supporting assets
+~~~
 
-The app defaults to `openai/gpt-oss-120b` on Groq (Groq's recommended
-replacement for the now-deprecated `llama-3.3-70b-versatile`). You can switch
-to the smaller/faster `openai/gpt-oss-20b` from the sidebar.
+## 🔐 Security
 
-## 🌐 A note on language support
+Never commit `.env` or your Groq API key.
 
-- **Transcript language** — chosen per-video in the sidebar, from whatever
-  caption tracks YouTube actually has for that video.
-- **Notes output language** — chosen on the Notes page; the LLM translates/writes
-  the study guide in your selected language regardless of the transcript's language.
-- **PDF rendering** — the bundled font (DejaVu Sans) covers Latin, Cyrillic, Greek,
-  and Vietnamese well. For scripts it doesn't cover (e.g. Chinese, Japanese, Korean,
-  Arabic, Hindi/Devanagari), use the **Markdown download** instead — it always
-  renders correctly since it's just UTF-8 text.
+## 📄 License
 
-## ⚠️ Troubleshooting
-
-- **"No transcript available"** — the video owner disabled captions for that video;
-  there's nothing the app can do about that.
-- **"YouTube is temporarily blocking transcript requests..."** — some cloud hosts'
-  IPs get rate-limited by YouTube. Set `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` in `.env`
-  to route transcript requests through a proxy.
-
-## 📁 Project structure
-
-```
-nav.py       # Entry point: page config, sidebar (URL + language + model), no API key input
-app.py       # Q&A page (RAG chat)
-notes.py     # Notes/study-guide generator + PDF/Markdown export
-utils.py     # Shared helpers: video ID parsing, oEmbed metadata, transcript fetching, LLM/embeddings
-assets/fonts # Bundled DejaVu Sans fonts for Unicode PDF export
-```
+MIT
